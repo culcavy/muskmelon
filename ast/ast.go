@@ -1,9 +1,15 @@
 package ast
 
-import "github.com/hollykbuck/muskmelon/token"
+import (
+	"bytes"
+	"github.com/hollykbuck/muskmelon/token"
+)
 
 type Node interface {
 	TokenLiteral() string
+	// String 输出节点的字符串表示。
+	// 打印 AST 节点用于调试
+	String() string
 }
 
 type Statement interface {
@@ -21,6 +27,15 @@ type Program struct {
 	Statements []Statement
 }
 
+func (p *Program) String() string {
+	var out bytes.Buffer
+	for _, statement := range p.Statements {
+		// 将实现委托给 statement
+		out.WriteString(statement.String())
+	}
+	return out.String()
+}
+
 func (p *Program) TokenLiteral() string {
 	if len(p.Statements) > 0 {
 		return p.Statements[0].TokenLiteral()
@@ -35,9 +50,44 @@ type LetStatement struct {
 	Value Expression
 }
 
+func (l *LetStatement) String() string {
+	var out bytes.Buffer
+	out.WriteString(l.TokenLiteral() + " ")
+	out.WriteString(l.Name.String())
+	out.WriteString(" = ")
+	if l.Value != nil {
+		out.WriteString(l.Value.String())
+	}
+	out.WriteString(";")
+	return out.String()
+}
+
 type ReturnStatement struct {
 	Token       token.Token
 	ReturnValue Expression
+}
+
+func (r *ReturnStatement) String() string {
+	var out bytes.Buffer
+
+	out.WriteString(r.TokenLiteral() + " ")
+	if r.ReturnValue != nil {
+		out.WriteString(r.ReturnValue.String())
+	}
+	out.WriteString(";")
+	return out.String()
+}
+
+type ExpressionStatement struct {
+	Token      token.Token
+	Expression Expression
+}
+
+func (r *ExpressionStatement) String() string {
+	if r.Expression != nil {
+		return r.Expression.String()
+	}
+	return ""
 }
 
 func (l *LetStatement) statementNode() {
@@ -53,6 +103,10 @@ type Identifier struct {
 	Value string
 }
 
+func (i *Identifier) String() string {
+	return i.Value
+}
+
 func (i *Identifier) expressionNode() {
 
 }
@@ -66,5 +120,13 @@ func (r *ReturnStatement) statementNode() {
 }
 
 func (r *ReturnStatement) TokenLiteral() string {
+	return r.Token.Literal
+}
+
+func (r *ExpressionStatement) statementNode() {
+
+}
+
+func (r *ExpressionStatement) TokenLiteral() string {
 	return r.Token.Literal
 }

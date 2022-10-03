@@ -7,16 +7,38 @@ import (
 	"github.com/hollykbuck/muskmelon/token"
 )
 
+const (
+	_ int = iota
+	// 运算符优先级
+
+	LOWEST
+	EQUALS      // ==
+	LESSGREATER // > or <
+	SUM         // +
+	PRODUCT     // *
+	PREFIX      // -X or !X
+	CALL        // myFunction(X)
+)
+
 type Parser struct {
-	l         *lexer.Lexer
-	curToken  token.Token
-	peekToken token.Token
-	errors    []string
+	l              *lexer.Lexer
+	curToken       token.Token
+	peekToken      token.Token
+	errors         []string
+	prefixParseFns map[token.TokenType]prefixParseFn
+	infixParseFns  map[token.TokenType]infixParseFn
 }
+
+type (
+	prefixParseFn func() ast.Expression
+	infixParseFn  func(expression ast.Expression) ast.Expression
+)
 
 // New 初始化 Parser 结构
 func New(l *lexer.Lexer) *Parser {
 	p := &Parser{l: l, errors: []string{}}
+	p.prefixParseFns = make(map[token.TokenType]prefixParseFn)
+	p.registerPrefix(token.IDENT, p.parseIdentifier)
 	p.nextToken()
 	p.nextToken()
 	return p
@@ -56,7 +78,8 @@ func (p *Parser) parseStatement() ast.Statement {
 	case token.RETURN:
 		return p.parseReturnStatement()
 	default:
-		return nil
+		// fallback 到表达式语句解析
+		return p.parseExpressionStatement()
 	}
 }
 
@@ -126,4 +149,41 @@ func (p *Parser) parseReturnStatement() *ast.ReturnStatement {
 		p.nextToken()
 	}
 	return statement
+}
+
+// registerPrefix 注册前缀表达式解析
+func (p *Parser) registerPrefix(tokenType token.TokenType, fn prefixParseFn) {
+	p.prefixParseFns[tokenType] = fn
+}
+
+// registerInfix 注册中缀表达式解析
+func (p *Parser) registerInfix(tokenType token.TokenType, fn infixParseFn) {
+	p.infixParseFns[tokenType] = fn
+}
+
+// parseExpressionStatement 解析表达式语句
+func (p *Parser) parseExpressionStatement() *ast.ExpressionStatement {
+	stmt := &ast.ExpressionStatement{
+		Token:      p.curToken,
+		Expression: p.parseExpression(LOWEST),
+	}
+	if p.peekTokenIs(token.SEMICOLON) {
+		p.nextToken()
+	}
+	return stmt
+}
+
+// parseExpression 解析表达式
+func (p *Parser) parseExpression(precedence int) ast.Expression {
+	// 查找和当前 token 对应的前缀表达式解析
+	prefix, ok := p.prefixParseFns[p.curToken.Type]
+	if !ok {
+		return nil
+	}
+	leftExp := prefix()
+	return leftExp
+}
+
+func (p *Parser) parseIdentifier() ast.Expression {
+	return &ast.Identifier{Token: p.curToken, Value: p.curToken.Literal}
 }
