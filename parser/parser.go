@@ -1,6 +1,7 @@
 package parser
 
 import (
+	"fmt"
 	"github.com/hollykbuck/muskmelon/ast"
 	"github.com/hollykbuck/muskmelon/lexer"
 	"github.com/hollykbuck/muskmelon/token"
@@ -10,11 +11,12 @@ type Parser struct {
 	l         *lexer.Lexer
 	curToken  token.Token
 	peekToken token.Token
+	errors    []string
 }
 
 // New 初始化 Parser 结构
 func New(l *lexer.Lexer) *Parser {
-	p := &Parser{l: l}
+	p := &Parser{l: l, errors: []string{}}
 	p.nextToken()
 	p.nextToken()
 	return p
@@ -86,6 +88,7 @@ func (p *Parser) expectPeek(t token.TokenType) bool {
 		p.nextToken()
 		return true
 	} else {
+		p.peekError(t)
 		return false
 	}
 }
@@ -98,4 +101,14 @@ func (p *Parser) curTokenIs(t token.TokenType) bool {
 // peekTokenIs 断言下一个 token 的类型
 func (p *Parser) peekTokenIs(t token.TokenType) bool {
 	return p.peekToken.Type == t
+}
+
+func (p *Parser) Errors() []string {
+	return p.errors
+}
+
+// peekError 添加一个 token 错误到 parser 的错误列表中
+func (p *Parser) peekError(t token.TokenType) {
+	msg := fmt.Sprintf("expected next token to be %s, got %s instead", t, p.peekToken.Type)
+	p.errors = append(p.errors, msg)
 }
