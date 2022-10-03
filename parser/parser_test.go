@@ -209,17 +209,11 @@ func testBoolLiteral(t *testing.T, i ast.Expression, value bool) bool {
 		return false
 	}
 	if literal.Value != value {
-		t.Errorf("literal.Value not %v, got=%v", value, literal.Value)
+		t.Errorf("literal.Value not %t, got=%t", value, literal.Value)
 		return false
 	}
-	var tokenLiteral string
-	if value {
-		tokenLiteral = "true"
-	} else {
-		tokenLiteral = "false"
-	}
-	if literal.TokenLiteral() != tokenLiteral {
-		t.Errorf("literal.TokenLiteral not %s, got=%s", tokenLiteral, literal.TokenLiteral())
+	if literal.TokenLiteral() != fmt.Sprintf("%t", value) {
+		t.Errorf("literal.TokenLiteral not %t, got=%s", value, literal.TokenLiteral())
 		return false
 	}
 	return true
@@ -228,9 +222,9 @@ func testBoolLiteral(t *testing.T, i ast.Expression, value bool) bool {
 func TestParsingInfixExpression(t *testing.T) {
 	infixTests := []struct {
 		input      string
-		leftValue  int64
+		leftValue  interface{}
 		operator   string
-		rightValue int64
+		rightValue interface{}
 	}{
 		{"5 + 5;", 5, "+", 5},
 		{"5 - 5;", 5, "-", 5},
@@ -240,6 +234,9 @@ func TestParsingInfixExpression(t *testing.T) {
 		{"5 < 5;", 5, "<", 5},
 		{"5 == 5;", 5, "==", 5},
 		{"5 != 5;", 5, "!=", 5},
+		{"true == true", true, "==", true},
+		{"true != false", true, "!=", false},
+		{"false == false", false, "==", false},
 	}
 	for _, tt := range infixTests {
 		l := lexer.New(tt.input)
@@ -253,19 +250,7 @@ func TestParsingInfixExpression(t *testing.T) {
 		if !ok {
 			t.Fatalf("program.Statements[0] is not ast.ExpressionStatement. got=%T", program.Statements[0])
 		}
-		exp, ok := statement.Expression.(*ast.InfixExpression)
-		if !ok {
-			t.Fatalf("statement.Expression is not ast.InfixExpression. got=%T", statement.Expression)
-		}
-		// 检查左操作数
-		if !testIntegerLiteral(t, exp.Left, tt.leftValue) {
-			return
-		}
-		// 检查运算符预期值和实际值
-		if exp.Operator != tt.operator {
-			t.Fatalf("exp.Operator is not %q. got=%s", tt.operator, exp.Operator)
-		}
-		if !testIntegerLiteral(t, exp.Right, tt.rightValue) {
+		if !testInfixExpression(t, statement.Expression, tt.leftValue, tt.operator, tt.rightValue) {
 			return
 		}
 	}
