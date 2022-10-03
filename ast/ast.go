@@ -87,6 +87,25 @@ type ReturnStatement struct {
 	ReturnValue Expression
 }
 
+type InfixExpression struct {
+	Left     Expression
+	Operator string
+	Right    Expression
+	Token    token.Token
+}
+
+func (i *InfixExpression) TokenLiteral() string {
+	return i.Token.Literal
+}
+
+func (i *InfixExpression) String() string {
+	return fmt.Sprintf("(%s %s %s)", i.Left.String(), i.Operator, i.Right.String())
+}
+
+func (i *InfixExpression) expressionNode() {
+
+}
+
 func (r *ReturnStatement) String() string {
 	var out bytes.Buffer
 

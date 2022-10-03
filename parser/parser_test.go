@@ -196,3 +196,49 @@ func testingIntegerLiteral(t *testing.T, i ast.Expression, value int64) bool {
 	}
 	return true
 }
+
+func TestParsingInfixExpression(t *testing.T) {
+	infixTests := []struct {
+		input      string
+		leftValue  int64
+		operator   string
+		rightValue int64
+	}{
+		{"5 + 5;", 5, "+", 5},
+		{"5 - 5;", 5, "-", 5},
+		{"5 * 5;", 5, "*", 5},
+		{"5 / 5;", 5, "/", 5},
+		{"5 > 5;", 5, ">", 5},
+		{"5 < 5;", 5, "<", 5},
+		{"5 == 5;", 5, "==", 5},
+		{"5 != 5;", 5, "!=", 5},
+	}
+	for _, tt := range infixTests {
+		l := lexer.New(tt.input)
+		parser := New(l)
+		program := parser.ParseProgram()
+		checkParseErrors(t, parser)
+		if len(program.Statements) != 1 {
+			t.Fatalf("program.Statements does not contain %d statements, got=%d", 1, len(program.Statements))
+		}
+		statement, ok := program.Statements[0].(*ast.ExpressionStatement)
+		if !ok {
+			t.Fatalf("program.Statements[0] is not ast.ExpressionStatement. got=%T", program.Statements[0])
+		}
+		exp, ok := statement.Expression.(*ast.InfixExpression)
+		if !ok {
+			t.Fatalf("statement.Expression is not ast.InfixExpression. got=%T", statement.Expression)
+		}
+		// 检查左操作数
+		if !testingIntegerLiteral(t, exp.Left, tt.leftValue) {
+			return
+		}
+		// 检查运算符预期值和实际值
+		if exp.Operator != tt.operator {
+			t.Fatalf("exp.Operator is not %q. got=%s", tt.operator, exp.Operator)
+		}
+		if !testingIntegerLiteral(t, exp.Right, tt.rightValue) {
+			return
+		}
+	}
+}

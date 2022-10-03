@@ -40,8 +40,10 @@ type (
 func New(l *lexer.Lexer) *Parser {
 	p := &Parser{l: l, errors: []string{}}
 	p.prefixParseFns = make(map[token.TokenType]prefixParseFn)
+	// Identifier 和 Integer 是终止符。
 	p.registerPrefix(token.IDENT, p.parseIdentifier)
 	p.registerPrefix(token.INT, p.parseIntegerLiteral)
+	// BANG 和 MINUS 是非终止符
 	p.registerPrefix(token.BANG, p.parsePrefixExpression)
 	p.registerPrefix(token.MINUS, p.parsePrefixExpression)
 	p.nextToken()
@@ -172,6 +174,7 @@ func (p *Parser) parseExpressionStatement() *ast.ExpressionStatement {
 		Token:      p.curToken,
 		Expression: p.parseExpression(LOWEST),
 	}
+	// statement 的末尾可以是 semicolon，也可以不是
 	if p.peekTokenIs(token.SEMICOLON) {
 		p.nextToken()
 	}
@@ -223,7 +226,7 @@ func (p *Parser) noPrefixParseFnError(t token.TokenType) {
 	p.errors = append(p.errors, msg)
 }
 
-// parsePrefixExpression
+// parsePrefixExpression 递归解析前缀表达式
 func (p *Parser) parsePrefixExpression() ast.Expression {
 	expression := &ast.PrefixExpression{
 		Token:    p.curToken,
