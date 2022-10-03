@@ -175,13 +175,17 @@ func TestParsingPrefixExpression(t *testing.T) {
 		if exp.Operator != tt.operator {
 			t.Fatalf("exp.Operator is not '%s'. got=%s", tt.operator, exp.Operator)
 		}
-		if !testingIntegerLiteral(t, exp.Right, tt.integerValue) {
+		if !testIntegerLiteral(t, exp.Right, tt.integerValue) {
 			return
 		}
 	}
 }
 
-func testingIntegerLiteral(t *testing.T, i ast.Expression, value int64) bool {
+// testIntegerLiteral 检查整型字面量的预期值和实际值
+func testIntegerLiteral(t *testing.T, i ast.Expression, value int64) bool {
+	// 这里的实现出现了一个问题，这里假设字面量应该和我们重新序列化数字的结果相等
+	// 但是这里没有考虑到进制，比如 050 会被序列化为 40，但是字面量是 050，两者
+	// 并不相等
 	literal, ok := i.(*ast.IntegerLiteral)
 	if !ok {
 		t.Errorf("il not ast.IntegerLiteral, got=%T", i)
@@ -230,14 +234,14 @@ func TestParsingInfixExpression(t *testing.T) {
 			t.Fatalf("statement.Expression is not ast.InfixExpression. got=%T", statement.Expression)
 		}
 		// 检查左操作数
-		if !testingIntegerLiteral(t, exp.Left, tt.leftValue) {
+		if !testIntegerLiteral(t, exp.Left, tt.leftValue) {
 			return
 		}
 		// 检查运算符预期值和实际值
 		if exp.Operator != tt.operator {
 			t.Fatalf("exp.Operator is not %q. got=%s", tt.operator, exp.Operator)
 		}
-		if !testingIntegerLiteral(t, exp.Right, tt.rightValue) {
+		if !testIntegerLiteral(t, exp.Right, tt.rightValue) {
 			return
 		}
 	}
@@ -303,8 +307,71 @@ func TestOperatorPrecedenceParsing(t *testing.T) {
 		program := p.ParseProgram()
 		checkParseErrors(t, p)
 		actual := program.String()
+		// 检验序列化的 AST 预期值和实际值
 		if actual != tt.expected {
 			t.Errorf("expected=%q, got=%q", tt.expected, actual)
 		}
 	}
+}
+
+// testIdentifier 检查标识符表达式的实际值和期望值
+func testIdentifier(t *testing.T, exp ast.Expression, value string) bool {
+	// 标识符是终结符。它是叶子节点，所以不再委托实现。
+	ident, ok := exp.(*ast.Identifier)
+	if !ok {
+		t.Errorf("exp not *ast.Identifier. got=%T", exp)
+		return false
+	}
+	if ident.Value != value {
+		t.Errorf("ident.Value not %s. got=%s", value, ident.Value)
+		return false
+	}
+	if ident.TokenLiteral() != value {
+		t.Errorf("ident.TokenLiteral not %s. got=%s", value,
+			ident.TokenLiteral())
+		return false
+	}
+	return true
+}
+
+// testLiteralExpression 测试字面量表达式。
+func testLiteralExpression(
+	t *testing.T,
+	exp ast.Expression,
+	expected interface{},
+) bool {
+	// 根据预期值的类型委托实现
+	switch v := expected.(type) {
+	case int:
+		return testIntegerLiteral(t, exp, int64(v))
+	case int64:
+		return testIntegerLiteral(t, exp, v)
+	case string:
+		return testIdentifier(t, exp, v)
+	}
+	t.Errorf("type of exp not handled. got=%T", exp)
+	return false
+}
+
+// testInfixExpression 检查中缀表达式的预期值和实际值
+func testInfixExpression(t *testing.T, exp ast.Expression, left interface{},
+	operator string, right interface{}) bool {
+	// 分别检查中缀表达式的 left operand, operator 和 right operand
+	// 中缀表达式的两个 operand 都是字面量，所以委托 testLiteralExpression 实现
+	opExp, ok := exp.(*ast.InfixExpression)
+	if !ok {
+		t.Errorf("exp is not ast.InfixExpression. got=%T(%s)", exp, exp)
+		return false
+	}
+	if !testLiteralExpression(t, opExp.Left, left) {
+		return false
+	}
+	if opExp.Operator != operator {
+		t.Errorf("exp.Operator is not '%s'. got=%q", operator, opExp.Operator)
+		return false
+	}
+	if !testLiteralExpression(t, opExp.Right, right) {
+		return false
+	}
+	return true
 }
