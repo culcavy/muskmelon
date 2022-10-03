@@ -197,6 +197,30 @@ func testIntegerLiteral(t *testing.T, i ast.Expression, value int64) bool {
 	}
 	if literal.TokenLiteral() != fmt.Sprintf("%d", value) {
 		t.Errorf("literal.TokenLiteral not %d, got=%s", value, literal.TokenLiteral())
+		return false
+	}
+	return true
+}
+
+func testBoolLiteral(t *testing.T, i ast.Expression, value bool) bool {
+	literal, ok := i.(*ast.Boolean)
+	if !ok {
+		t.Errorf("il not ast.IntegerLiteral, got=%T", i)
+		return false
+	}
+	if literal.Value != value {
+		t.Errorf("literal.Value not %v, got=%v", value, literal.Value)
+		return false
+	}
+	var tokenLiteral string
+	if value {
+		tokenLiteral = "true"
+	} else {
+		tokenLiteral = "false"
+	}
+	if literal.TokenLiteral() != tokenLiteral {
+		t.Errorf("literal.TokenLiteral not %s, got=%s", tokenLiteral, literal.TokenLiteral())
+		return false
 	}
 	return true
 }
@@ -252,6 +276,22 @@ func TestOperatorPrecedenceParsing(t *testing.T) {
 		input    string
 		expected string
 	}{
+		{
+			"true",
+			"true",
+		},
+		{
+			"false",
+			"false",
+		},
+		{
+			"3 > 5 == false",
+			"((3 > 5) == false)",
+		},
+		{
+			"3 < 5 == true",
+			"((3 < 5) == true)",
+		},
 		{
 			"-a * b",
 			"((-a) * b)",
@@ -309,7 +349,7 @@ func TestOperatorPrecedenceParsing(t *testing.T) {
 		actual := program.String()
 		// 检验序列化的 AST 预期值和实际值
 		if actual != tt.expected {
-			t.Errorf("expected=%q, got=%q", tt.expected, actual)
+			t.Errorf("expectedBool=%q, got=%q", tt.expected, actual)
 		}
 	}
 }
@@ -334,6 +374,38 @@ func testIdentifier(t *testing.T, exp ast.Expression, value string) bool {
 	return true
 }
 
+func TestBooleanExpression(t *testing.T) {
+	tests := []struct {
+		input        string
+		expectedBool bool
+	}{
+		{
+			input:        "true;",
+			expectedBool: true,
+		},
+		{
+			input:        "false;",
+			expectedBool: false,
+		},
+	}
+	for _, tt := range tests {
+		l := lexer.New(tt.input)
+		parser := New(l)
+		program := parser.ParseProgram()
+		checkParseErrors(t, parser)
+		if len(program.Statements) != 1 {
+			t.Fatalf("program.Statements does not contain %d statements. got: %d", 1, len(program.Statements))
+		}
+		statement, ok := program.Statements[0].(*ast.ExpressionStatement)
+		if !ok {
+			t.Fatalf("program.Statements[0] is not ast.ExpressionStatement. got=%T", program.Statements[0])
+		}
+		if !testLiteralExpression(t, statement.Expression, tt.expectedBool) {
+			return
+		}
+	}
+}
+
 // testLiteralExpression 测试字面量表达式。
 func testLiteralExpression(
 	t *testing.T,
@@ -348,6 +420,8 @@ func testLiteralExpression(
 		return testIntegerLiteral(t, exp, v)
 	case string:
 		return testIdentifier(t, exp, v)
+	case bool:
+		return testBoolLiteral(t, exp, v)
 	}
 	t.Errorf("type of exp not handled. got=%T", exp)
 	return false

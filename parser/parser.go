@@ -57,6 +57,8 @@ func New(l *lexer.Lexer) *Parser {
 	// BANG 和 MINUS 是非终止符
 	p.registerPrefix(token.BANG, p.parsePrefixExpression)
 	p.registerPrefix(token.MINUS, p.parsePrefixExpression)
+	p.registerPrefix(token.TRUE, p.parseBoolean)
+	p.registerPrefix(token.FALSE, p.parseBoolean)
 	p.infixParseFns = make(map[token.TokenType]infixParseFn)
 	// 中缀表达式没有一个是终结符
 	p.registerInfix(token.PLUS, p.parseInfixExpression)
@@ -162,7 +164,7 @@ func (p *Parser) Errors() []string {
 
 // peekError 添加一个 token 错误到 parser 的错误列表中
 func (p *Parser) peekError(t token.TokenType) {
-	msg := fmt.Sprintf("expected next token to be %s, got %s instead", t, p.peekToken.Type)
+	msg := fmt.Sprintf("expectedBool next token to be %s, got %s instead", t, p.peekToken.Type)
 	p.errors = append(p.errors, msg)
 }
 
@@ -246,6 +248,18 @@ func (p *Parser) parseIntegerLiteral() ast.Expression {
 	}
 	// 将 value 设定为解析出的数字
 	lit.Value = parseInt
+	return lit
+}
+
+func (p *Parser) parseBoolean() ast.Expression {
+	lit := &ast.Boolean{
+		Token: p.curToken,
+	}
+	if p.curToken.Literal == "true" {
+		lit.Value = true
+	} else if p.curToken.Literal == "false" {
+		lit.Value = false
+	}
 	return lit
 }
 

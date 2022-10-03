@@ -23,6 +23,23 @@ type Expression interface {
 	expressionNode()
 }
 
+type Boolean struct {
+	Token token.Token
+	Value bool
+}
+
+func (b *Boolean) TokenLiteral() string {
+	return b.Token.Literal
+}
+
+func (b *Boolean) String() string {
+	return b.Token.Literal
+}
+
+func (b *Boolean) expressionNode() {
+
+}
+
 // Program AST的根节点
 type Program struct {
 	Statements []Statement
