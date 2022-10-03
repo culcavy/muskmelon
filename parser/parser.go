@@ -8,6 +8,17 @@ import (
 	"strconv"
 )
 
+var precedences = map[token.TokenType]int{
+	token.EQ:       EQUALS,
+	token.NEQ:      EQUALS,
+	token.LT:       LESSGREATER,
+	token.GT:       LESSGREATER,
+	token.PLUS:     SUM,
+	token.MINUS:    SUM,
+	token.SLASH:    PRODUCT,
+	token.ASTERISK: PRODUCT,
+}
+
 const (
 	_ int = iota
 	// 运算符优先级
@@ -46,6 +57,16 @@ func New(l *lexer.Lexer) *Parser {
 	// BANG 和 MINUS 是非终止符
 	p.registerPrefix(token.BANG, p.parsePrefixExpression)
 	p.registerPrefix(token.MINUS, p.parsePrefixExpression)
+	p.infixParseFns = make(map[token.TokenType]infixParseFn)
+	// 中缀表达式没有一个是终结符
+	p.registerInfix(token.PLUS, p.parseInfixExpression)
+	p.registerInfix(token.MINUS, p.parseInfixExpression)
+	p.registerInfix(token.SLASH, p.parseInfixExpression)
+	p.registerInfix(token.ASTERISK, p.parseInfixExpression)
+	p.registerInfix(token.EQ, p.parseInfixExpression)
+	p.registerInfix(token.NEQ, p.parseInfixExpression)
+	p.registerInfix(token.LT, p.parseInfixExpression)
+	p.registerInfix(token.GT, p.parseInfixExpression)
 	p.nextToken()
 	p.nextToken()
 	return p
@@ -192,6 +213,14 @@ func (p *Parser) parseExpression(precedence int) ast.Expression {
 		return nil
 	}
 	leftExp := prefix()
+	for !p.peekTokenIs(token.SEMICOLON) && precedence < p.peekPrecedence() {
+		infix, ok := p.infixParseFns[p.peekToken.Type]
+		if !ok {
+			return leftExp
+		}
+		p.nextToken()
+		leftExp = infix(leftExp)
+	}
 	return leftExp
 }
 
@@ -234,5 +263,39 @@ func (p *Parser) parsePrefixExpression() ast.Expression {
 	}
 	p.nextToken()
 	expression.Right = p.parseExpression(PREFIX)
+	return expression
+}
+
+// peekPrecedence 查询 peekToken 的优先级
+func (p *Parser) peekPrecedence() int {
+	precedence, ok := precedences[p.peekToken.Type]
+	if ok {
+		return precedence
+	}
+	//if !ok {
+	//	p.errors = append(p.errors, fmt.Sprintf("找不到 token 对应的优先级"))
+	//}
+	return LOWEST
+}
+
+// curPrecedence 查询 curToken 的优先级
+func (p *Parser) curPrecedence() int {
+	if p, ok := precedences[p.curToken.Type]; ok {
+		return p
+	}
+	return LOWEST
+}
+
+// parseInfixExpression 实现中缀表达式的解析
+func (p *Parser) parseInfixExpression(leftOperand ast.Expression) ast.Expression {
+	expression := &ast.InfixExpression{
+		Left:     leftOperand,
+		Operator: p.curToken.Literal,
+		Right:    nil,
+		Token:    p.curToken,
+	}
+	precedence := p.curPrecedence()
+	p.nextToken()
+	expression.Right = p.parseExpression(precedence)
 	return expression
 }
