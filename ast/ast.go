@@ -2,6 +2,7 @@ package ast
 
 import (
 	"bytes"
+	"fmt"
 	"github.com/hollykbuck/muskmelon/token"
 )
 
@@ -48,6 +49,25 @@ type LetStatement struct {
 	Token token.Token
 	Name  *Identifier
 	Value Expression
+}
+
+type PrefixExpression struct {
+	Token    token.Token
+	Operator string
+	Right    Expression
+}
+
+func (p *PrefixExpression) TokenLiteral() string {
+	return p.Token.Literal
+}
+
+func (p *PrefixExpression) String() string {
+	var out bytes.Buffer
+	out.WriteString(fmt.Sprintf("(%s%s)", p.Operator, p.Right.String()))
+	return out.String()
+}
+
+func (p *PrefixExpression) expressionNode() {
 }
 
 func (l *LetStatement) String() string {

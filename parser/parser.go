@@ -22,9 +22,10 @@ const (
 )
 
 type Parser struct {
-	l              *lexer.Lexer
-	curToken       token.Token
-	peekToken      token.Token
+	l         *lexer.Lexer
+	curToken  token.Token
+	peekToken token.Token
+	// errors 不记录 error 只记录报错信息（字符串）
 	errors         []string
 	prefixParseFns map[token.TokenType]prefixParseFn
 	infixParseFns  map[token.TokenType]infixParseFn
@@ -175,11 +176,14 @@ func (p *Parser) parseExpressionStatement() *ast.ExpressionStatement {
 	return stmt
 }
 
-// parseExpression 解析表达式
+// parseExpression 解析表达式。
+// 根据表达式开头的 token 寻找对应的解析函数。
+// 如果查不到 prefix 对应的解析函数会记录错误。
 func (p *Parser) parseExpression(precedence int) ast.Expression {
 	// 查找和当前 token 对应的前缀表达式解析
 	prefix, ok := p.prefixParseFns[p.curToken.Type]
 	if !ok {
+		p.noPrefixParseFnError(p.curToken.Type)
 		return nil
 	}
 	leftExp := prefix()
@@ -191,16 +195,28 @@ func (p *Parser) parseIdentifier() ast.Expression {
 	return &ast.Identifier{Token: p.curToken, Value: p.curToken.Literal}
 }
 
+// parseIntegerLiteral 解析整型字面量表达式
 func (p *Parser) parseIntegerLiteral() ast.Expression {
+	// 创建一个空的字面量表达式
 	lit := &ast.IntegerLiteral{
 		Token: p.curToken,
 	}
+	// 使用 strconv 解析数字
+	// base=0 表示进制根据字符串而定
 	parseInt, err := strconv.ParseInt(p.curToken.Literal, 0, 64)
+	// 如果出错，将错误添加到 parser 的错误列表中
 	if err != nil {
 		msg := fmt.Sprintf("could not parse %q as integer", p.curToken.Literal)
 		p.errors = append(p.errors, msg)
 		return nil
 	}
+	// 将 value 设定为解析出的数字
 	lit.Value = parseInt
 	return lit
+}
+
+// noPrefixParseFnError 记录找不到 prefix 对应的解析函数错误
+func (p *Parser) noPrefixParseFnError(t token.TokenType) {
+	msg := fmt.Sprintf("no prefix parse function for %s found", t)
+	p.errors = append(p.errors, msg)
 }
