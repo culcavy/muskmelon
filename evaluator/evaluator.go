@@ -35,8 +35,41 @@ func Eval(node ast.Node) object.Object {
 		left := Eval(nodeActual.Left)
 		right := Eval(nodeActual.Right)
 		return evalInfixExpression(nodeActual.Operator, left, right)
+	case *ast.BlockStatement:
+		// Expression
+		// 将实现委托给 evalStatements
+		return evalStatements(nodeActual.Statements)
+	case *ast.IfExpression:
+		// Expression
+		return evalIfExpression(nodeActual)
 	}
 	return nil
+}
+
+// evalIfExpression eval if 表达式
+func evalIfExpression(ie *ast.IfExpression) object.Object {
+	condition := Eval(ie.Condition)
+	if isTruthy(condition) {
+		return Eval(ie.Consequence)
+	} else if ie.Alternative != nil {
+		return Eval(ie.Alternative)
+	} else {
+		return NULL
+	}
+}
+
+// isTruthy 判断 Condition 的值是否为 if 意义上的 true
+func isTruthy(obj object.Object) bool {
+	switch obj {
+	case NULL:
+		return false
+	case TRUE:
+		return true
+	case FALSE:
+		return false
+	default:
+		return true
+	}
 }
 
 // evalInfixExpression eval 中缀表达式
@@ -120,7 +153,8 @@ func nativeBoolToBooleanObject(input bool) object.Object {
 	return FALSE
 }
 
-// evalStatements 批量解释 statement. 将实现委托给 Eval
+// evalStatements 批量解释 statement. 将实现委托给 Eval.
+// 将最后一个语句的值作为返回值
 func evalStatements(statements []ast.Statement) object.Object {
 	var result object.Object
 	for _, statement := range statements {
