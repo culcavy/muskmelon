@@ -10,6 +10,20 @@ import (
 
 const PROMPT = ">> "
 
+const MONKEY_FACE = `
+     ______
+    /_____/\
+   /_____\\ \
+  /_____\ \\ / 
+ /_____/ \/ / / 
+/_____/ /   \//\ 
+\_____\//\   / / 
+ \_____/ / /\ /
+  \_____/ \\ \ 
+   \_____\ \\ 
+    \_____\/
+`
+
 func Start(in io.Reader, out io.Writer) error {
 	scanner := bufio.NewScanner(in)
 	for {
@@ -44,8 +58,20 @@ func Start(in io.Reader, out io.Writer) error {
 }
 
 func printParserErrors(out io.Writer, errors []string) error {
+	_, err := io.WriteString(out, MONKEY_FACE)
+	if err != nil {
+		return err
+	}
+	_, err = io.WriteString(out, "Woops! We ran into some monkey business here!\n")
+	if err != nil {
+		return err
+	}
+	_, err = io.WriteString(out, " parser errors:\n")
+	if err != nil {
+		return err
+	}
 	for _, msg := range errors {
-		_, err := io.WriteString(out, "\t"+msg+"\n")
+		_, err = io.WriteString(out, "\t"+msg+"\n")
 		if err != nil {
 			return err
 		}
