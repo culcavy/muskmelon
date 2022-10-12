@@ -4,7 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"github.com/hollykbuck/muskmelon/lexer"
-	"github.com/hollykbuck/muskmelon/token"
+	"github.com/hollykbuck/muskmelon/parser"
 	"io"
 )
 
@@ -23,11 +23,32 @@ func Start(in io.Reader, out io.Writer) error {
 		}
 		line := scanner.Text()
 		l := lexer.New(line)
-		for tok := l.NextToken(); tok.Type != token.EOF; tok = l.NextToken() {
-			_, err = fmt.Fprintf(out, "%+v\n", tok)
+		p := parser.New(l)
+		program := p.ParseProgram()
+		if len(p.Errors()) != 0 {
+			err = printParserErrors(out, p.Errors())
 			if err != nil {
-				return fmt.Errorf("输出失败: %w", err)
+				return err
 			}
+			continue
+		}
+		_, err = io.WriteString(out, program.String())
+		if err != nil {
+			return err
+		}
+		_, err = io.WriteString(out, "\n")
+		if err != nil {
+			return err
 		}
 	}
+}
+
+func printParserErrors(out io.Writer, errors []string) error {
+	for _, msg := range errors {
+		_, err := io.WriteString(out, "\t"+msg+"\n")
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
