@@ -3,6 +3,7 @@ package repl
 import (
 	"bufio"
 	"fmt"
+	"github.com/hollykbuck/muskmelon/evaluator"
 	"github.com/hollykbuck/muskmelon/lexer"
 	"github.com/hollykbuck/muskmelon/parser"
 	"io"
@@ -46,13 +47,16 @@ func Start(in io.Reader, out io.Writer) error {
 			}
 			continue
 		}
-		_, err = io.WriteString(out, program.String())
-		if err != nil {
-			return err
-		}
-		_, err = io.WriteString(out, "\n")
-		if err != nil {
-			return err
+		evaluated := evaluator.Eval(program)
+		if evaluated != nil {
+			_, err = io.WriteString(out, evaluated.Inspect())
+			if err != nil {
+				return err
+			}
+			_, err = io.WriteString(out, "\n")
+			if err != nil {
+				return err
+			}
 		}
 	}
 }
