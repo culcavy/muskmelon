@@ -59,6 +59,7 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerPrefix(token.MINUS, p.parsePrefixExpression)
 	p.registerPrefix(token.TRUE, p.parseBoolean)
 	p.registerPrefix(token.FALSE, p.parseBoolean)
+	p.registerPrefix(token.LPAREN, p.parseGroupedExpression)
 	p.infixParseFns = make(map[token.TokenType]infixParseFn)
 	// 中缀表达式没有一个是终结符
 	p.registerInfix(token.PLUS, p.parseInfixExpression)
@@ -72,6 +73,17 @@ func New(l *lexer.Lexer) *Parser {
 	p.nextToken()
 	p.nextToken()
 	return p
+}
+
+// 解析括号表达式
+func (p *Parser) parseGroupedExpression() ast.Expression {
+	p.nextToken()
+	// 从最低优先级开始重新解析
+	expression := p.parseExpression(LOWEST)
+	if !p.expectPeek(token.RPAREN) {
+		return nil
+	}
+	return expression
 }
 
 // nextToken 将 lexer 解析出来的 token 读入 parser。
