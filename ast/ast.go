@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"github.com/hollykbuck/muskmelon/token"
+	"strings"
 )
 
 // Node AST 节点
@@ -74,6 +75,33 @@ func (i *IfExpression) String() string {
 
 func (i *IfExpression) expressionNode() {
 
+}
+
+type FunctionLiteral struct {
+	Token      token.Token
+	Parameters []*Identifier
+	Body       *BlockStatement
+}
+
+func (f *FunctionLiteral) TokenLiteral() string {
+	return f.Token.Literal
+}
+
+func (f *FunctionLiteral) String() string {
+	var out bytes.Buffer
+	var params []string
+	for _, p := range f.Parameters {
+		params = append(params, p.String())
+	}
+	out.WriteString(f.TokenLiteral())
+	out.WriteString("(")
+	out.WriteString(strings.Join(params, ","))
+	out.WriteString(") ")
+	out.WriteString(f.Body.String())
+	return out.String()
+}
+
+func (f *FunctionLiteral) expressionNode() {
 }
 
 type Boolean struct {

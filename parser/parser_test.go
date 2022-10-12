@@ -552,3 +552,39 @@ func TestIfElseExpression(t *testing.T) {
 		return
 	}
 }
+
+func TestFunctionLiteralParsing(t *testing.T) {
+	input := `fn(x, y) { x + y; }`
+	l := lexer.New(input)
+	p := New(l)
+	program := p.ParseProgram()
+	checkParseErrors(t, p)
+	// 最顶层的依然是 program
+	if len(program.Statements) != 1 {
+		t.Fatalf("program.Statements does not contain %d statements. got=%d\n", 1, len(program.Statements))
+	}
+	// if 应该整体是一个表达式，类型为 ExpressionStatement
+	// 因为 return 和 let 以外的 statement 都是 ifExpression statement
+	statement, ok := program.Statements[0].(*ast.ExpressionStatement)
+	if !ok {
+		t.Fatalf("program.Statements[0] is not ast.ExpressionStatement. got=%T", program.Statements[0])
+	}
+	// ExpressionStatement 的 Expression 部分细化为 If Expression
+	fnExpression, ok := statement.Expression.(*ast.FunctionLiteral)
+	if !ok {
+		t.Fatalf("statement.Expression is not ast.FunctionLiteral. got=%T", statement.Expression)
+	}
+	if len(fnExpression.Parameters) != 2 {
+		t.Fatalf("fnExpression.Parameters does not contain %d statements. got=%d\n", 1, len(fnExpression.Parameters))
+	}
+	testLiteralExpression(t, fnExpression.Parameters[0], "x")
+	testLiteralExpression(t, fnExpression.Parameters[1], "y")
+	if len(fnExpression.Body.Statements) != 1 {
+		t.Fatalf("fnExpression.Body.Statements has not 1 statements. got=%d", len(fnExpression.Body.Statements))
+	}
+	expressionStatement, ok := fnExpression.Body.Statements[0].(*ast.ExpressionStatement)
+	if !ok {
+		t.Fatalf("fnExpression.Body.Statements[0] is not ast.ExpressionStatement, got=%T", fnExpression.Body.Statements[0])
+	}
+	testInfixExpression(t, expressionStatement.Expression, "x", "+", "y")
+}
