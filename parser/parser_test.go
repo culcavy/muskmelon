@@ -499,3 +499,56 @@ func TestIfExpression(t *testing.T) {
 		t.Errorf("ifExpression.Alternative.Statements was not nil. got=%+v", ifExpression.Alternative)
 	}
 }
+
+func TestIfElseExpression(t *testing.T) {
+	input := `if (x < y) {x} else {y}`
+	l := lexer.New(input)
+	p := New(l)
+	program := p.ParseProgram()
+	checkParseErrors(t, p)
+	// 最顶层的依然是 program
+	if len(program.Statements) != 1 {
+		t.Fatalf("program.Statements does not contain %d statements. got=%d\n", 1, len(program.Statements))
+	}
+	// if 应该整体是一个表达式，类型为 ExpressionStatement
+	// 因为 return 和 let 以外的 statement 都是 ifExpression statement
+	statement, ok := program.Statements[0].(*ast.ExpressionStatement)
+	if !ok {
+		t.Fatalf("program.Statements[0] is not ast.ExpressionStatement. got=%T", program.Statements[0])
+	}
+	// ExpressionStatement 的 Expression 部分细化为 If Expression
+	ifExpression, ok := statement.Expression.(*ast.IfExpression)
+	if !ok {
+		t.Fatalf("statement.Expression is not ast.IfExpression. got=%T", statement.Expression)
+	}
+	// test 部分细化为 infix ifExpression
+	// infix Expression 由 ifExpression 的 operator 来区分
+	if !testInfixExpression(t, ifExpression.Condition, "x", "<", "y") {
+		return
+	}
+	// 检查 ifExpression 的 Consequence 部分
+	// Consequence 部分是一个 BlockStatement
+	if len(ifExpression.Consequence.Statements) != 1 {
+		t.Errorf("consequence is not 1 statements. got=%d\n", len(ifExpression.Consequence.Statements))
+	}
+	expressionStatement, ok := ifExpression.Consequence.Statements[0].(*ast.ExpressionStatement)
+	if !ok {
+		t.Fatalf("ifExpression.Consequence.Statements[0] is not ast.ExpressionStatement, got=%T", ifExpression.Consequence.Statements[0])
+	}
+	if !testIdentifier(t, expressionStatement.Expression, "x") {
+		return
+	}
+	if ifExpression.Alternative == nil {
+		t.Fatalf("ifExpression.Alternative == nil")
+	}
+	if len(ifExpression.Alternative.Statements) != 1 {
+		t.Fatalf("ifExpression.Alternative.Statements does not contain %d statements. got=%d\n", 1, len(ifExpression.Alternative.Statements))
+	}
+	expStmt := ifExpression.Alternative.Statements[0].(*ast.ExpressionStatement)
+	if !ok {
+		t.Fatalf("ifExpression.Alternative.Statements[0] is not ast.ExpressionStatement, got=%T", ifExpression.Alternative.Statements[0])
+	}
+	if !testIdentifier(t, expStmt.Expression, "y") {
+		return
+	}
+}
