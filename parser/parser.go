@@ -150,7 +150,11 @@ func (p *Parser) parseLetStatement() *ast.LetStatement {
 	return statement
 }
 
-// expectPeek 检查下一个 token 是不是指定的类型
+// expectPeek 检查下一个 token 是不是指定的类型。
+// 如果是，让 curToken 指向下一个 token。
+// 如果不是，在 Parser 上记录一个错误。
+//
+// mutable。
 func (p *Parser) expectPeek(t token.TokenType) bool {
 	if p.peekTokenIs(t) {
 		p.nextToken()
@@ -162,6 +166,8 @@ func (p *Parser) expectPeek(t token.TokenType) bool {
 }
 
 // curTokenIs 断言当前 token 的类型
+//
+// const
 func (p *Parser) curTokenIs(t token.TokenType) bool {
 	return p.curToken.Type == t
 }
@@ -335,7 +341,9 @@ func (p *Parser) parseIfExpression() ast.Expression {
 	if !p.expectPeek(token.LPAREN) {
 		return nil
 	}
+	//log.Println(p.curToken.Type)
 	p.nextToken()
+	//log.Println(p.curToken.Type)
 	// 从最低优先级开始解析 Condition 表达式
 	expression.Condition = p.parseExpression(LOWEST)
 	// 解析完成后应该碰到的 token 是 `)`
