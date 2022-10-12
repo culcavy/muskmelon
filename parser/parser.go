@@ -146,8 +146,9 @@ func (p *Parser) parseLetStatement() *ast.LetStatement {
 	if !p.expectPeek(token.ASSIGN) {
 		return nil
 	}
-	// TODO: 现在我们还没实现表达式解析，所以我们让解析跳到 semicolon 为止。
-	for !p.curTokenIs(token.SEMICOLON) {
+	p.nextToken()
+	statement.Value = p.parseExpression(LOWEST)
+	if p.peekTokenIs(token.SEMICOLON) {
 		p.nextToken()
 	}
 	return statement
