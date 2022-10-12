@@ -54,6 +54,7 @@ func New(l *lexer.Lexer) *Parser {
 	// Identifier 和 Integer 是终止符。
 	p.registerPrefix(token.IDENT, p.parseIdentifier)
 	p.registerPrefix(token.INT, p.parseIntegerLiteral)
+	p.registerPrefix(token.IF, p.parseIfExpression)
 	// BANG 和 MINUS 是非终止符
 	p.registerPrefix(token.BANG, p.parsePrefixExpression)
 	p.registerPrefix(token.MINUS, p.parsePrefixExpression)
@@ -324,4 +325,43 @@ func (p *Parser) parseInfixExpression(leftOperand ast.Expression) ast.Expression
 	p.nextToken()
 	expression.Right = p.parseExpression(precedence)
 	return expression
+}
+
+// parseIfExpression 解析 If 表达式
+func (p *Parser) parseIfExpression() ast.Expression {
+	// 先创建一个空白的 If 表达式
+	expression := &ast.IfExpression{Token: p.curToken}
+	// 下一个 token 应该是 `(`
+	if !p.expectPeek(token.LPAREN) {
+		return nil
+	}
+	p.nextToken()
+	// 从最低优先级开始解析 Condition 表达式
+	expression.Condition = p.parseExpression(LOWEST)
+	// 解析完成后应该碰到的 token 是 `)`
+	if !p.expectPeek(token.RPAREN) {
+		return nil
+	}
+	// 再接下去是 `{`
+	if !p.expectPeek(token.LBRACE) {
+		return nil
+	}
+	expression.Consequence = p.parseBlockStatement()
+	return expression
+}
+
+// parseBlockStatement 解析块级表达式
+func (p *Parser) parseBlockStatement() *ast.BlockStatement {
+	block := &ast.BlockStatement{Token: p.curToken}
+	block.Statements = []ast.Statement{}
+	p.nextToken()
+	for !p.curTokenIs(token.RBRACE) && !p.curTokenIs(token.EOF) {
+		statement := p.parseStatement()
+		if statement != nil {
+			block.Statements = append(block.Statements, statement)
+		}
+		p.nextToken()
+	}
+
+	return block
 }

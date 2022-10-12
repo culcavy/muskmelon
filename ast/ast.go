@@ -6,7 +6,9 @@ import (
 	"github.com/hollykbuck/muskmelon/token"
 )
 
+// Node AST 节点
 type Node interface {
+	// TokenLiteral 节点 Token 的字面
 	TokenLiteral() string
 	// String 输出节点的字符串表示。
 	// 打印 AST 节点用于调试
@@ -21,6 +23,57 @@ type Statement interface {
 type Expression interface {
 	Node
 	expressionNode()
+}
+
+type BlockStatement struct {
+	Token      token.Token
+	Statements []Statement
+}
+
+func (b *BlockStatement) TokenLiteral() string {
+	return b.Token.Literal
+}
+
+func (b *BlockStatement) String() string {
+	var out bytes.Buffer
+	for _, statement := range b.Statements {
+		out.WriteString(statement.String())
+	}
+	return out.String()
+}
+
+func (b *BlockStatement) statementNode() {
+}
+
+type IfExpression struct {
+	Token       token.Token
+	Condition   Expression
+	Consequence *BlockStatement
+	Alternative *BlockStatement
+}
+
+func (i *IfExpression) TokenLiteral() string {
+	return i.Token.Literal
+}
+
+// String 序列化 If 表达式
+func (i *IfExpression) String() string {
+	var out bytes.Buffer
+
+	out.WriteString("if")
+	out.WriteString(i.Condition.String())
+	out.WriteString(" ")
+	out.WriteString(i.Consequence.String())
+	if i.Alternative != nil {
+		out.WriteString("else ")
+
+		out.WriteString(i.Alternative.String())
+	}
+	return out.String()
+}
+
+func (i *IfExpression) expressionNode() {
+
 }
 
 type Boolean struct {
