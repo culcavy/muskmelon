@@ -16,7 +16,7 @@ let foobar = 838383;
 	l := lexer.New(input)
 	parser := New(l)
 	program := parser.ParseProgram()
-	checkParseErrors(t, parser)
+	checkParserErrors(t, parser)
 	if program == nil {
 		t.Fatalf("ParseProgram() returned nil")
 	}
@@ -47,7 +47,7 @@ return 993322;
 	l := lexer.New(input)
 	p := New(l)
 	program := p.ParseProgram()
-	checkParseErrors(t, p)
+	checkParserErrors(t, p)
 	if len(program.Statements) != 3 {
 		t.Fatalf("program.Statements does not contain 3 statements. got=%d", len(program.Statements))
 	}
@@ -64,7 +64,8 @@ return 993322;
 	}
 }
 
-func checkParseErrors(t *testing.T, parser *Parser) {
+// checkParserErrors 检查并打印 Parser 中记录的错误
+func checkParserErrors(t *testing.T, parser *Parser) {
 	errors := parser.Errors()
 	if len(errors) == 0 {
 		return
@@ -102,7 +103,7 @@ func TestIdentifierExpression(t *testing.T) {
 	l := lexer.New(input)
 	parser := New(l)
 	program := parser.ParseProgram()
-	checkParseErrors(t, parser)
+	checkParserErrors(t, parser)
 	if len(program.Statements) != 1 {
 		t.Fatalf("program has not enough statements. got=%d", len(program.Statements))
 	}
@@ -127,7 +128,7 @@ func TestIntegerLiteralExpression(t *testing.T) {
 	l := lexer.New(input)
 	parser := New(l)
 	program := parser.ParseProgram()
-	checkParseErrors(t, parser)
+	checkParserErrors(t, parser)
 	if len(program.Statements) != 1 {
 		t.Fatalf("program has not enough statements. got=%d", len(program.Statements))
 	}
@@ -162,7 +163,7 @@ func TestParsingPrefixExpression(t *testing.T) {
 		l := lexer.New(tt.input)
 		parser := New(l)
 		program := parser.ParseProgram()
-		checkParseErrors(t, parser)
+		checkParserErrors(t, parser)
 		if len(program.Statements) != 1 {
 			t.Fatalf("program.Statements does not contain %d statements. got=%d\n", 1, len(program.Statements))
 		}
@@ -244,7 +245,7 @@ func TestParsingInfixExpression(t *testing.T) {
 		l := lexer.New(tt.input)
 		parser := New(l)
 		program := parser.ParseProgram()
-		checkParseErrors(t, parser)
+		checkParserErrors(t, parser)
 		if len(program.Statements) != 1 {
 			t.Fatalf("program.Statements does not contain %d statements, got=%d", 1, len(program.Statements))
 		}
@@ -351,7 +352,7 @@ func TestOperatorPrecedenceParsing(t *testing.T) {
 		l := lexer.New(tt.input)
 		p := New(l)
 		program := p.ParseProgram()
-		checkParseErrors(t, p)
+		checkParserErrors(t, p)
 		actual := program.String()
 		// 检验序列化的 AST 预期值和实际值
 		if actual != tt.expected {
@@ -398,7 +399,7 @@ func TestBooleanExpression(t *testing.T) {
 		l := lexer.New(tt.input)
 		parser := New(l)
 		program := parser.ParseProgram()
-		checkParseErrors(t, parser)
+		checkParserErrors(t, parser)
 		if len(program.Statements) != 1 {
 			t.Fatalf("program.Statements does not contain %d statements. got: %d", 1, len(program.Statements))
 		}
@@ -461,7 +462,7 @@ func TestIfExpression(t *testing.T) {
 	l := lexer.New(input)
 	p := New(l)
 	program := p.ParseProgram()
-	checkParseErrors(t, p)
+	checkParserErrors(t, p)
 	// 最顶层的依然是 program
 	if len(program.Statements) != 1 {
 		t.Fatalf("program.Statements does not contain %d statements. got=%d\n", 1, len(program.Statements))
@@ -505,7 +506,7 @@ func TestIfElseExpression(t *testing.T) {
 	l := lexer.New(input)
 	p := New(l)
 	program := p.ParseProgram()
-	checkParseErrors(t, p)
+	checkParserErrors(t, p)
 	// 最顶层的依然是 program
 	if len(program.Statements) != 1 {
 		t.Fatalf("program.Statements does not contain %d statements. got=%d\n", 1, len(program.Statements))
@@ -558,7 +559,7 @@ func TestFunctionLiteralParsing(t *testing.T) {
 	l := lexer.New(input)
 	p := New(l)
 	program := p.ParseProgram()
-	checkParseErrors(t, p)
+	checkParserErrors(t, p)
 	// 最顶层的依然是 program
 	if len(program.Statements) != 1 {
 		t.Fatalf("program.Statements does not contain %d statements. got=%d\n", 1, len(program.Statements))
@@ -602,7 +603,7 @@ func TestFunctionParameterParsing(t *testing.T) {
 		l := lexer.New(tt.input)
 		p := New(l)
 		program := p.ParseProgram()
-		checkParseErrors(t, p)
+		checkParserErrors(t, p)
 		stmt := program.Statements[0].(*ast.ExpressionStatement)
 		function := stmt.Expression.(*ast.FunctionLiteral)
 		if len(function.Parameters) != len(tt.expectedParams) {
@@ -613,4 +614,36 @@ func TestFunctionParameterParsing(t *testing.T) {
 			testLiteralExpression(t, function.Parameters[i], ident)
 		}
 	}
+}
+
+func TestCallExpressionParsing(t *testing.T) {
+	input := "add(1, 2 * 3, 4 + 5);"
+	l := lexer.New(input)
+	p := New(l)
+	program := p.ParseProgram()
+	checkParserErrors(t, p)
+	if len(program.Statements) != 1 {
+		t.Fatalf("program.Statements does not contain %d statements. got=%d\n",
+			1, len(program.Statements))
+	}
+	stmt, ok := program.Statements[0].(*ast.ExpressionStatement)
+	if !ok {
+		t.Fatalf("stmt is not ast.ExpressionStatement. got=%T",
+			program.Statements[0])
+
+	}
+	exp, ok := stmt.Expression.(*ast.CallExpression)
+	if !ok {
+		t.Fatalf("stmt.Expression is not ast.CallExpression. got=%T",
+			stmt.Expression)
+	}
+	if !testIdentifier(t, exp.Function, "add") {
+		return
+	}
+	if len(exp.Arguments) != 3 {
+		t.Fatalf("wrong length of arguments. got=%d", len(exp.Arguments))
+	}
+	testLiteralExpression(t, exp.Arguments[0], 1)
+	testInfixExpression(t, exp.Arguments[1], 2, "*", 3)
+	testInfixExpression(t, exp.Arguments[2], 4, "+", 5)
 }
