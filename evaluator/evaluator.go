@@ -13,25 +13,58 @@ var (
 
 // Eval eval 传入的 ast 节点
 func Eval(node ast.Node) object.Object {
-	switch nodeType := node.(type) {
+	switch nodeActual := node.(type) {
 	case *ast.Program:
 		// Statements
-		return evalStatements(nodeType.Statements)
+		return evalStatements(nodeActual.Statements)
 	case *ast.ExpressionStatement:
 		// Statements
-		return Eval(nodeType.Expression)
+		return Eval(nodeActual.Expression)
 	case *ast.IntegerLiteral:
 		// Expressions
-		return &object.Integer{Value: nodeType.Value}
+		return &object.Integer{Value: nodeActual.Value}
 	case *ast.Boolean:
 		// Expressions
-		return nativeBoolToBooleanObject(nodeType.Value)
+		return nativeBoolToBooleanObject(nodeActual.Value)
 	case *ast.PrefixExpression:
 		// Expressions
-		right := Eval(nodeType.Right)
-		return evalPrefixExpression(nodeType.Operator, right)
+		right := Eval(nodeActual.Right)
+		return evalPrefixExpression(nodeActual.Operator, right)
+	case *ast.InfixExpression:
+		// Expressions
+		left := Eval(nodeActual.Left)
+		right := Eval(nodeActual.Right)
+		return evalInfixExpression(nodeActual.Operator, left, right)
 	}
 	return nil
+}
+
+// evalInfixExpression eval 中缀表达式
+func evalInfixExpression(operator string, left object.Object, right object.Object) object.Object {
+	switch {
+	case left.Type() == object.INTEGER_OBJ && right.Type() == object.INTEGER_OBJ:
+		return evalIntegerInfixExpression(operator, left, right)
+	default:
+		return NULL
+	}
+}
+
+// evalIntegerInfixExpression 整型中缀表达式计算
+func evalIntegerInfixExpression(operator string, left object.Object, right object.Object) object.Object {
+	leftVal := left.(*object.Integer).Value
+	rightVal := right.(*object.Integer).Value
+	switch operator {
+	case "+":
+		return &object.Integer{Value: leftVal + rightVal}
+	case "-":
+		return &object.Integer{Value: leftVal - rightVal}
+	case "*":
+		return &object.Integer{Value: leftVal * rightVal}
+	case "/":
+		return &object.Integer{Value: leftVal / rightVal}
+	default:
+		return NULL
+	}
 }
 
 // evalPrefixExpression eval 前缀表达式. 根据 operator 类型将实现委托给具体的 eval 函数.
