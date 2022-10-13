@@ -16,7 +16,7 @@ func Eval(node ast.Node) object.Object {
 	switch nodeActual := node.(type) {
 	case *ast.Program:
 		// Statements
-		return evalStatements(nodeActual.Statements)
+		return evalProgram(nodeActual)
 	case *ast.ExpressionStatement:
 		// Statements
 		return Eval(nodeActual.Expression)
@@ -38,7 +38,7 @@ func Eval(node ast.Node) object.Object {
 	case *ast.BlockStatement:
 		// Expression
 		// 将实现委托给 evalStatements
-		return evalStatements(nodeActual.Statements)
+		return evalBlockStatement(nodeActual.Statements)
 	case *ast.IfExpression:
 		// Expression
 		return evalIfExpression(nodeActual)
@@ -49,6 +49,35 @@ func Eval(node ast.Node) object.Object {
 		return &object.ReturnValue{Value: val}
 	}
 	return nil
+}
+
+// evalBlockStatement eval block statement
+func evalBlockStatement(statements []ast.Statement) object.Object {
+	var result object.Object
+	for _, statement := range statements {
+		result = Eval(statement)
+		// 碰到 return 了就打断流程
+		// 这里我们不 unwrap return value
+		if result != nil && result.Type() == object.RETURN_VALUE_OBJ {
+			return result
+		}
+	}
+	return result
+}
+
+// evalProgram eval Program 节点
+func evalProgram(actual *ast.Program) object.Object {
+	var result object.Object
+	for _, statement := range actual.Statements {
+		result = Eval(statement)
+		// 碰到 return 了就打断流程
+		// 直到 evalProgram 才 unwrap return value
+		returnValue, ok := result.(*object.ReturnValue)
+		if ok {
+			return returnValue.Value
+		}
+	}
+	return result
 }
 
 // evalIfExpression eval if 表达式
@@ -156,18 +185,4 @@ func nativeBoolToBooleanObject(input bool) object.Object {
 		return TRUE
 	}
 	return FALSE
-}
-
-// evalStatements 批量解释 statement. 将实现委托给 Eval.
-// 将最后一个语句的值作为返回值
-func evalStatements(statements []ast.Statement) object.Object {
-	var result object.Object
-	for _, statement := range statements {
-		result = Eval(statement)
-		returnStatement, ok := result.(*object.ReturnValue)
-		if ok {
-			return returnStatement.Value
-		}
-	}
-	return result
 }
