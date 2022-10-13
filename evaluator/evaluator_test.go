@@ -154,3 +154,23 @@ func testNullObject(t *testing.T, obj object.Object) bool {
 	}
 	return true
 }
+
+// TestReturnStatements 测试 return 语句
+func TestReturnStatements(t *testing.T) {
+	tests := []struct {
+		// 输入
+		input string
+		// 预期值
+		expected int64
+	}{
+		{"return 10;", 10},
+		{"return 10; 9;", 10},
+		{"return 2 * 5; 9;", 10},
+		{"9; return 2 * 5; 9;", 10},
+	}
+	for _, tt := range tests {
+		// 使用 testEval eval 并获得值
+		evaluated := testEval(tt.input)
+		testIntegerObject(t, evaluated, tt.expected)
+	}
+}
