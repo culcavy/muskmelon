@@ -71,11 +71,14 @@ func evalProgram(actual *ast.Program) object.Object {
 	var result object.Object
 	for _, statement := range actual.Statements {
 		result = Eval(statement)
-		// 碰到 return 了就打断流程
-		// 直到 evalProgram 才 unwrap return value
-		returnValue, ok := result.(*object.ReturnValue)
-		if ok {
-			return returnValue.Value
+		switch resultActual := result.(type) {
+		case *object.ReturnValue:
+			// 碰到 return 了就打断流程
+			// 直到 evalProgram 才 unwrap return value
+			return resultActual.Value
+		case *object.Error:
+			// 如果运行出现了错误，选择不展开
+			return resultActual
 		}
 	}
 	return result
@@ -147,7 +150,8 @@ func evalIntegerInfixExpression(operator string, left object.Object, right objec
 	case "!=":
 		return nativeBoolToBooleanObject(leftVal != rightVal)
 	default:
-		return NULL
+		return newError("unknown operator: %s %s %s",
+			left.Type(), operator, right.Type())
 	}
 }
 
