@@ -12,6 +12,14 @@ var (
 	FALSE = &object.Boolean{Value: false}
 )
 
+// isError 判断 obj 类型是否是错误
+func isError(obj object.Object) bool {
+	if obj != nil {
+		return obj.Type() == object.ERROR_OBJ
+	}
+	return false
+}
+
 // Eval eval 传入的 ast 节点
 func Eval(node ast.Node) object.Object {
 	switch nodeActual := node.(type) {
@@ -30,11 +38,22 @@ func Eval(node ast.Node) object.Object {
 	case *ast.PrefixExpression:
 		// Expressions
 		right := Eval(nodeActual.Right)
+		// operand 出现错误应当返回错误
+		if isError(right) {
+			return right
+		}
 		return evalPrefixExpression(nodeActual.Operator, right)
 	case *ast.InfixExpression:
 		// Expressions
+		// 任何一个 operand 出现错误都应返回错误
 		left := Eval(nodeActual.Left)
+		if isError(left) {
+			return left
+		}
 		right := Eval(nodeActual.Right)
+		if isError(right) {
+			return right
+		}
 		return evalInfixExpression(nodeActual.Operator, left, right)
 	case *ast.BlockStatement:
 		// Expression
@@ -47,6 +66,10 @@ func Eval(node ast.Node) object.Object {
 		// 计算表达式的值
 		// 表达式的值作为返回值返回
 		val := Eval(nodeActual.ReturnValue)
+		// return 的 operand 出现错误应返回错误
+		if isError(val) {
+			return val
+		}
 		return &object.ReturnValue{Value: val}
 	}
 	return nil
