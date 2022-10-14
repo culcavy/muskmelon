@@ -56,11 +56,16 @@ func Eval(node ast.Node) object.Object {
 func evalBlockStatement(statements []ast.Statement) object.Object {
 	var result object.Object
 	for _, statement := range statements {
+		// 执行单条语句
 		result = Eval(statement)
-		// 碰到 return 了就打断流程
-		// 这里我们不 unwrap return value
-		if result != nil && result.Type() == object.RETURN_VALUE_OBJ {
-			return result
+
+		if result != nil {
+			resultType := result.Type()
+			// 碰到 return 或者 error 了就打断流程
+			// 这里我们不 unwrap return value
+			if resultType == object.RETURN_VALUE_OBJ || resultType == object.ERROR_OBJ {
+				return result
+			}
 		}
 	}
 	return result
