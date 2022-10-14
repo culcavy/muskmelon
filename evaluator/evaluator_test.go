@@ -40,7 +40,8 @@ func testEval(input string) object.Object {
 	l := lexer.New(input)
 	p := parser.New(l)
 	program := p.ParseProgram()
-	return Eval(program)
+	env := object.NewEnvironment()
+	return Eval(program, env)
 }
 
 // testIntegerObject 检查 eval 的结果是否为整型对象, 检查值是否为 expected

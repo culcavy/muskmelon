@@ -21,14 +21,14 @@ func isError(obj object.Object) bool {
 }
 
 // Eval eval 传入的 ast 节点
-func Eval(node ast.Node) object.Object {
+func Eval(node ast.Node, env *object.Environment) object.Object {
 	switch nodeActual := node.(type) {
 	case *ast.Program:
 		// Statements
-		return evalProgram(nodeActual)
+		return evalProgram(nodeActual, env)
 	case *ast.ExpressionStatement:
 		// Statements
-		return Eval(nodeActual.Expression)
+		return Eval(nodeActual.Expression, env)
 	case *ast.IntegerLiteral:
 		// Expressions
 		return &object.Integer{Value: nodeActual.Value}
@@ -37,7 +37,7 @@ func Eval(node ast.Node) object.Object {
 		return nativeBoolToBooleanObject(nodeActual.Value)
 	case *ast.PrefixExpression:
 		// Expressions
-		right := Eval(nodeActual.Right)
+		right := Eval(nodeActual.Right, env)
 		// operand 出现错误应当返回错误
 		if isError(right) {
 			return right
@@ -46,11 +46,11 @@ func Eval(node ast.Node) object.Object {
 	case *ast.InfixExpression:
 		// Expressions
 		// 任何一个 operand 出现错误都应返回错误
-		left := Eval(nodeActual.Left)
+		left := Eval(nodeActual.Left, env)
 		if isError(left) {
 			return left
 		}
-		right := Eval(nodeActual.Right)
+		right := Eval(nodeActual.Right, env)
 		if isError(right) {
 			return right
 		}
@@ -58,34 +58,47 @@ func Eval(node ast.Node) object.Object {
 	case *ast.BlockStatement:
 		// Expression
 		// 将实现委托给 evalStatements
-		return evalBlockStatement(nodeActual.Statements)
+		return evalBlockStatement(nodeActual.Statements, env)
 	case *ast.IfExpression:
 		// Expression
-		return evalIfExpression(nodeActual)
+		return evalIfExpression(nodeActual, env)
 	case *ast.ReturnStatement:
 		// 计算表达式的值
 		// 表达式的值作为返回值返回
-		val := Eval(nodeActual.ReturnValue)
+		val := Eval(nodeActual.ReturnValue, env)
 		// return 的 operand 出现错误应返回错误
 		if isError(val) {
 			return val
 		}
 		return &object.ReturnValue{Value: val}
 	case *ast.LetStatement:
-		val := Eval(nodeActual.Value)
+		val := Eval(nodeActual.Value, env)
 		if isError(val) {
 			return val
 		}
+		// 将等号右边的值存到 environment 中
+		env.Set(nodeActual.Name.Value, val)
+	case *ast.Identifier:
+		return evalIdentifier(nodeActual, env)
 	}
 	return nil
 }
 
+// evalIdentifier 计算标识符的值
+func evalIdentifier(node *ast.Identifier, env *object.Environment) object.Object {
+	val, ok := env.Get(node.Value)
+	if !ok {
+		return newError("identifier not found: " + node.Value)
+	}
+	return val
+}
+
 // evalBlockStatement eval block statement
-func evalBlockStatement(statements []ast.Statement) object.Object {
+func evalBlockStatement(statements []ast.Statement, env *object.Environment) object.Object {
 	var result object.Object
 	for _, statement := range statements {
 		// 执行单条语句
-		result = Eval(statement)
+		result = Eval(statement, env)
 
 		if result != nil {
 			resultType := result.Type()
@@ -100,10 +113,10 @@ func evalBlockStatement(statements []ast.Statement) object.Object {
 }
 
 // evalProgram eval Program 节点
-func evalProgram(actual *ast.Program) object.Object {
+func evalProgram(actual *ast.Program, env *object.Environment) object.Object {
 	var result object.Object
 	for _, statement := range actual.Statements {
-		result = Eval(statement)
+		result = Eval(statement, env)
 		switch resultActual := result.(type) {
 		case *object.ReturnValue:
 			// 碰到 return 了就打断流程
@@ -118,12 +131,12 @@ func evalProgram(actual *ast.Program) object.Object {
 }
 
 // evalIfExpression eval if 表达式
-func evalIfExpression(ie *ast.IfExpression) object.Object {
-	condition := Eval(ie.Condition)
+func evalIfExpression(ie *ast.IfExpression, env *object.Environment) object.Object {
+	condition := Eval(ie.Condition, env)
 	if isTruthy(condition) {
-		return Eval(ie.Consequence)
+		return Eval(ie.Consequence, env)
 	} else if ie.Alternative != nil {
-		return Eval(ie.Alternative)
+		return Eval(ie.Alternative, env)
 	} else {
 		return NULL
 	}

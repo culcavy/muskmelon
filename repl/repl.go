@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/hollykbuck/muskmelon/evaluator"
 	"github.com/hollykbuck/muskmelon/lexer"
+	"github.com/hollykbuck/muskmelon/object"
 	"github.com/hollykbuck/muskmelon/parser"
 	"io"
 )
@@ -27,6 +28,7 @@ const MONKEY_FACE = `
 
 func Start(in io.Reader, out io.Writer) error {
 	scanner := bufio.NewScanner(in)
+	env := object.NewEnvironment()
 	for {
 		_, err := fmt.Fprintf(out, PROMPT)
 		if err != nil {
@@ -47,7 +49,7 @@ func Start(in io.Reader, out io.Writer) error {
 			}
 			continue
 		}
-		evaluated := evaluator.Eval(program)
+		evaluated := evaluator.Eval(program, env)
 		if evaluated != nil {
 			_, err = io.WriteString(out, evaluated.Inspect())
 			if err != nil {
