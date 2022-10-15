@@ -26,6 +26,8 @@ func New(input string) *Lexer {
 
 // readChar 读下一个字符，将读到的字符串写到 context 中
 // 如果 EOF 那么字符设定为 EOF
+//
+// mutable
 func (l *Lexer) readChar() {
 	step := 1
 	if l.readPosition >= len(l.input) {
@@ -94,6 +96,9 @@ func (l *Lexer) NextToken() token.Token {
 	case 0:
 		tok.Literal = ""
 		tok.Type = token.EOF
+	case '"':
+		tok.Type = token.STRING
+		tok.Literal = l.readString()
 	default:
 		if isLetter(l.ch) {
 			tok.Literal = l.readIdentifier()
@@ -154,4 +159,16 @@ func (l *Lexer) peekChar() (rune, int) {
 		r, size := utf8.DecodeRuneInString(l.input[l.readPosition:])
 		return r, size
 	}
+}
+
+// readString 解析字符串字面量
+func (l *Lexer) readString() string {
+	position := l.position + 1
+	for {
+		l.readChar()
+		if l.ch == '"' || l.ch == 0 {
+			break
+		}
+	}
+	return l.input[position:l.position]
 }

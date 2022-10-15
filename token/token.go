@@ -27,6 +27,7 @@ const (
 	GT       = ">"
 	EQ       = "=="
 	NEQ      = "!="
+	COLON    = ":"
 	// Delimiters
 
 	COMMA     = ","
@@ -35,6 +36,8 @@ const (
 	RPAREN    = ")"
 	LBRACE    = "{"
 	RBRACE    = "}"
+	LBRACKET  = "["
+	RBRACKET  = "]"
 	// Keywords
 
 	FUNCTION = "FUNCTION"
@@ -44,6 +47,7 @@ const (
 	IF       = "IF"
 	ELSE     = "ELSE"
 	RETURN   = "RETURN"
+	STRING   = "STRING"
 )
 
 var keywords = map[string]TokenType{
