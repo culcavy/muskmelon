@@ -21,6 +21,7 @@ const (
 	//ERROR_OBJ 错误类型
 	ERROR_OBJ    = "ERROR"
 	FUNCTION_OBJ = "FUNCTION"
+	STRING_OBJ   = "STRING"
 )
 
 // Object 所有的对象的父类型
@@ -93,3 +94,12 @@ func (f *Function) Inspect() string {
 	out.WriteString("\n}")
 	return out.String()
 }
+
+// String 字符串字面量
+type String struct {
+	Value string
+}
+
+// Type 字符串字面量的类型
+func (s *String) Type() ObjectType { return STRING_OBJ }
+func (s *String) Inspect() string  { return s.Value }
