@@ -143,13 +143,15 @@ func evalExpressions(
 	return result
 }
 
-// evalIdentifier 计算标识符的值
+// evalIdentifier 计算标识符的值。如果标识符是一个内置函数，将解析为内置函数符号。
 func evalIdentifier(node *ast.Identifier, env *object.Environment) object.Object {
-	val, ok := env.Get(node.Value)
-	if !ok {
-		return newError("identifier not found: " + node.Value)
+	if val, ok := env.Get(node.Value); ok {
+		return val
 	}
-	return val
+	if builtin, ok := builtins[node.Value]; ok {
+		return builtin
+	}
+	return newError("identifier not found: " + node.Value)
 }
 
 // evalBlockStatement eval block statement
