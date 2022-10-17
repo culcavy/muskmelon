@@ -9,6 +9,8 @@ import (
 
 type ObjectType string
 
+type BuiltinFunction func(args ...Object) Object
+
 const (
 	// INTEGER_OBJ 整型类型
 	INTEGER_OBJ = "INTEGER"
@@ -22,6 +24,7 @@ const (
 	ERROR_OBJ    = "ERROR"
 	FUNCTION_OBJ = "FUNCTION"
 	STRING_OBJ   = "STRING"
+	BUILTIN_OBJ  = "BUILTIN"
 )
 
 // Object 所有的对象的父类型
@@ -103,3 +106,12 @@ type String struct {
 // Type 字符串字面量的类型
 func (s *String) Type() ObjectType { return STRING_OBJ }
 func (s *String) Inspect() string  { return s.Value }
+
+type Builtin struct {
+	Fn BuiltinFunction
+}
+
+func (b *Builtin) Type() ObjectType { return BUILTIN_OBJ }
+
+// Inspect 内置函数无法打印详细内容
+func (b *Builtin) Inspect() string { return "builtin function" }
