@@ -101,13 +101,18 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 }
 
 func applyFunction(fn object.Object, args []object.Object) object.Object {
-	function, ok := fn.(*object.Function)
-	if !ok {
-		return newError("not a function: %s", fn.Type())
+	switch fnActual := fn.(type) {
+	case *object.Function:
+		// 如果是函数类型，进一步执行函数语句
+		extendedEnv := extendFunctionEnv(fnActual, args)
+		evaluated := Eval(fnActual.Body, extendedEnv)
+		return unwrapReturnValue(evaluated)
+	case *object.Builtin:
+		// 如果是 builtin 类型直接调用对应函数
+		return fnActual.Fn(args...)
+	default:
+		return newError("not a function: %s", fnActual.Type())
 	}
-	extendedEnv := extendFunctionEnv(function, args)
-	evaluated := Eval(function.Body, extendedEnv)
-	return unwrapReturnValue(evaluated)
 }
 
 func extendFunctionEnv(
