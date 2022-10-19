@@ -28,7 +28,6 @@ if (5 < 10) {
 "foobar"
 "foo bar"
 [1, 2];
-{"foo": "bar"}
 `
 
 	tests := []struct {
@@ -83,6 +82,7 @@ if (5 < 10) {
 		{token.GT, ">"},
 		{token.INT, "5"},
 		{token.SEMICOLON, ";"},
+		// if 5 < 10 { return true }
 		{token.IF, "if"},
 		{token.LPAREN, "("},
 		{token.INT, "5"},
@@ -94,33 +94,40 @@ if (5 < 10) {
 		{token.TRUE, "true"},
 		{token.SEMICOLON, ";"},
 		{token.RBRACE, "}"},
+		// else {return false;}
 		{token.ELSE, "else"},
 		{token.LBRACE, "{"},
 		{token.RETURN, "return"},
 		{token.FALSE, "false"},
 		{token.SEMICOLON, ";"},
 		{token.RBRACE, "}"},
+		// 10 == 9
 		{token.INT, "10"},
 		{token.EQ, "=="},
 		{token.INT, "10"},
 		{token.SEMICOLON, ";"},
+		// 10 != 9
 		{token.INT, "10"},
 		{token.NEQ, "!="},
 		{token.INT, "9"},
 		{token.SEMICOLON, ";"},
+		// "foobar"
 		{token.STRING, "foobar"},
+		// "foo bar"
 		{token.STRING, "foo bar"},
+		// [1, 2]
 		{token.LBRACKET, "["},
 		{token.INT, "1"},
 		{token.COMMA, ","},
 		{token.INT, "2"},
 		{token.RBRACKET, "]"},
 		{token.SEMICOLON, ";"},
-		{token.LBRACE, "{"},
-		{token.STRING, "foo"},
-		{token.COLON, ":"},
-		{token.STRING, "bar"},
-		{token.RBRACE, "}"},
+		// {"foo": "bar"}
+		//{token.LBRACE, "{"},
+		//{token.STRING, "foo"},
+		//{token.COLON, ":"},
+		//{token.STRING, "bar"},
+		//{token.RBRACE, "}"},
 		{token.EOF, ""},
 	}
 
