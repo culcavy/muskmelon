@@ -322,3 +322,26 @@ func (s *StringLiteral) String() string {
 func (s *StringLiteral) expressionNode() {
 
 }
+
+// ArrayLiteral 数组类型
+type ArrayLiteral struct {
+	Token    token.Token // the '[' token
+	Elements []Expression
+}
+
+func (al *ArrayLiteral) expressionNode() {}
+
+func (al *ArrayLiteral) TokenLiteral() string { return al.Token.Literal }
+
+// String 打印数组内所有表达式字面
+func (al *ArrayLiteral) String() string {
+	var out bytes.Buffer
+	var elements []string
+	for _, el := range al.Elements {
+		elements = append(elements, el.String())
+	}
+	out.WriteString("[")
+	out.WriteString(strings.Join(elements, ", "))
+	out.WriteString("]")
+	return out.String()
+}
